@@ -70,10 +70,10 @@ table#t01 tr:hover {
 <p><h3>%s</h3></p>
 <table id="t01" >
   <tr>
-    <th>No</th>
-    <th>Name</th>       
-    <th id = 'thsize'>Size</th>
-    <th>Date</th>
+    <th>번호</th>
+    <th>이름</th>       
+    <th id = 'thsize'>크기</th>
+    <th>최종수정일</th>
   </tr>
   %s  
 </table>
@@ -95,19 +95,15 @@ def byte_to_unit(n):
     if n > 1024:
         return "%.1fKB" % (float(n)/(1024))
     return "%dB" % n
-def make_index( relpath ):     
-
-    abspath = os.path.abspath(relpath)   
+def make_index( path,relpath):     
+    abspath = os.path.abspath(relpath)
     flist = os.listdir( abspath )  #; print flist
-    
     rellist = []
     for fname in flist :     
         relname = os.path.join( relpath, fname)
         relname = relname.encode("euckr")
         rellist.append(relname)
-    
-    
-    # print rellist
+
     inslist = []
     insert_string ="<tr><td>{0}</td><td><a href='{1}'>{2}</a></td><td id='tdsize'>{3}</td><td>{4}</td></tr>"
     for i,r in  enumerate( rellist ) : 
@@ -119,27 +115,37 @@ def make_index( relpath ):
             file_display_name =  '[ '+os.path.split(r)[1]+' ]'
         else :
             file_display_name = os.path.split(r)[1] 
-        inslist.append( insert_string.format(i+1,r,file_display_name,file_size,file_update_time) )
+        if path[-1]=='/':
+            urlpath = path +  os.path.split(r)[1] 
+        else:
+            urlpath = path + "/" + os.path.split(r)[1] 
+        inslist.append( insert_string.format(i+1,urlpath,file_display_name,file_size,file_update_time) )
   
     ret = page_tpl % ( abspath.encode("cp949"),"\n".join(inslist))
     return ret
 
-
+def localpath_to_urlpath(s):
+    return s.replace("\\","/")
+def urlpath_to_localpath(s):
+    return s.replace("/","\\")
 # -----------------------------------------------------------------------
 
 class MyHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
-            mypath = '.' + urllib.url2pathname(self.path)
-            mypath = mypath.decode("utf8")      
-            abspath = os.path.abspath( mypath )
             print "self.path #==> : " + self.path
+            mypath = '.' + urllib.url2pathname(self.path)
+            # print "mypath    #==> : " + mypath
+            # mypath = urlpath_to_localpath(mypath)
+            # print "mypath    #==> : " + mypath
+            mypath = mypath.decode("utf8")
+            abspath = os.path.abspath( mypath )            
             print "mypath    #==> : " + mypath
             print "abspath   #==> : " + abspath
 
             if os.path.isdir(abspath):
-                page = make_index( mypath )
+                page = make_index( self.path,mypath )
                 self.send_response(200)
                 self.send_header('Content-type',	'text/html')
                 self.end_headers()
@@ -147,10 +153,7 @@ class MyHandler(BaseHTTPRequestHandler):
                 return     
 
             if self.path.endswith(".html"):
-                ## print curdir + sep + self.path
                 f = open(curdir + sep + self.path)
-                #note that this potentially makes every file on your computer readable by the internet
-
                 self.send_response(200)
                 self.send_header('Content-type',	'text/html')
                 self.end_headers()
@@ -168,12 +171,8 @@ class MyHandler(BaseHTTPRequestHandler):
 
             #else : # default: just send the file     
             if os.path.isfile(abspath):   
-                #filepath = self.path[1:] # remove leading '/'
                 filepath = abspath
-            
-                f = open( os.path.join(CWD, filepath), 'rb' ) 
-                #note that this potentially makes every file on your computer readable by the internet
-
+                f = open( os.path.join(CWD, filepath), 'rb' )
                 self.send_response(200)
                 self.send_header('Content-type',	'application/octet-stream')
                 self.end_headers()
