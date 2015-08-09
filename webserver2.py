@@ -6,7 +6,8 @@ import os
 import socket
 import time 
 import string,cgi
-HOME_DIR = "D:\\local\\FileWebserver\\html_home"
+# HOME_DIR = "D:\\local\\FileWebserver\\html_home"
+HOME_DIR = "c:"
 
 
 page_tpl = """
@@ -23,7 +24,7 @@ div.list {
 }
 table {
     width:100%%;
-    font-family: '³ª´®°íµñ',NanumGothic;
+    font-family: '¸¼Àº °íµñ',NanumGothic;
     font-size: 14px;  
     font-weight: bold;
     border-collapse: collapse;
@@ -74,6 +75,8 @@ table th#thupdate {
 table td#tdupdate {
    text-align: center;
 }
+
+
 table#t01 th    {
     border-top-style: solid;
     border-top-width: 2px;
@@ -82,8 +85,11 @@ table#t01 th    {
     color: black;
 }
 table#t01 tr:hover {
-    background-color: #efac30;
+    transition: font-size 0.5s ease;
+    font-size: 15px;
+    background-color:  #efac30;
 }
+
 </style>
 </head>    
 <body>
@@ -123,19 +129,31 @@ def make_index(  path, abspath ):
     for i,f in  enumerate( flist ) : 
         file_name           = os.path.split(f)[1]
         urlpath             = (path+file_name) if path[-1]=='/' else (path + "/" + file_name)
-        file_display_name   = '[ '+ file_name+' ]' if os.path.isdir(f) else file_name
+        if os.path.isdir(f) :
+            file_display_name = "¡¼  "+ file_name+'  ¡½' 
+        else:
+            file_display_name =file_name
         file_size           = byte_to_unit( os.path.getsize(f) )   
         file_update_time    = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime( os.stat(f).st_mtime )   )
         inslist.append( insert_string.format(i+1,urlpath,file_display_name,file_size,file_update_time) )
   
-    ret = page_tpl % ( abspath.encode("cp949"),"\n".join(inslist))
+    # ret = page_tpl % ( abspath.encode("cp949"),"\n".join(inslist))
+    ret = page_tpl % ( abspath,"\n".join(inslist))
     return ret
+
+
 
 class MyHandler(BaseHTTPRequestHandler):
    
     def do_GET(self):
         try:
+            print type( self.path)
             print "self.path #==> : " + self.path
+            unq = urllib.unquote(self.path).decode('utf-8').encode('cp949')
+            
+            self.path = unq
+            print "self.path ++==> : " + self.path
+
             if HOME_DIR[-1] == "\\":
                 abspath = HOME_DIR[:-1] + self.path.replace("/","\\")
                 
