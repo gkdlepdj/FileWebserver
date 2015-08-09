@@ -8,6 +8,7 @@ from os import curdir, sep
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import socket 
 import os # os. path
+import glob
 import urllib
 
 page_tpl = """
@@ -25,7 +26,8 @@ div.list {
 table {
     width:100%%;
     font-family: '나눔고딕',NanumGothic;
-    font-size: 12px;  
+    font-size: 14px;  
+    font-weight: bold;
     border-collapse: collapse;
     border-spacing: 0;
 }
@@ -50,9 +52,35 @@ table#t01 tr:nth-child(odd) {
 table td#tdsize {
    text-align: right;
 }
+
+table th#thno {
+   text-align: left;
+   width: 10%%
+}
+
+table th#thname {
+   text-align: left;
+   width: 60%%
+}
+
 table th#thsize {
    text-align: right;
-} 
+   width: 10%%
+}
+
+table th#thupdate {
+   text-align: center;
+   width: 20%%
+}
+
+table td#tdupdate {
+   text-align: center;
+}
+
+
+
+
+
 table#t01 th    {
     border-top-style: solid;
     border-top-width: 2px;
@@ -70,10 +98,10 @@ table#t01 tr:hover {
 <p><h3>%s</h3></p>
 <table id="t01" >
   <tr>
-    <th>번호</th>
-    <th>이름</th>       
-    <th id = 'thsize'>크기</th>
-    <th>최종수정일</th>
+    <th id='thno'>번호</th>
+    <th id='thname'>이름</th>       
+    <th id='thsize'>크기</th>
+    <th id='thupdate'>최종수정일</th>
   </tr>
   %s  
 </table>
@@ -97,7 +125,14 @@ def byte_to_unit(n):
     return "%dB" % n
 def make_index( path,relpath):     
     abspath = os.path.abspath(relpath)
-    flist = os.listdir( abspath )  #; print flist
+
+    # 정렬  디렉토리 알파벳 순서 + 파일 알파벳 순서 
+    files = filter(os.path.isfile, glob.glob(abspath + "\\*"))
+    files.sort()
+    dirs = filter(os.path.isdir, glob.glob(abspath + "\\*"))
+    dirs.sort()
+    flist = dirs+files
+    
     rellist = []
     for fname in flist :     
         relname = os.path.join( relpath, fname)
@@ -105,7 +140,8 @@ def make_index( path,relpath):
         rellist.append(relname)
 
     inslist = []
-    insert_string ="<tr><td>{0}</td><td><a href='{1}'>{2}</a></td><td id='tdsize'>{3}</td><td>{4}</td></tr>"
+    insert_string ="<tr><td>{0}</td><td><a href='{1}'>{2}</a></td><td id='tdsize'>{3}</td><td id='tdupdate'>{4}</td></tr>"
+
     for i,r in  enumerate( rellist ) : 
         n = os.path.getsize(r)
         filestat = os.stat(r)
@@ -136,13 +172,8 @@ class MyHandler(BaseHTTPRequestHandler):
         try:
             print "self.path #==> : " + self.path
             mypath = '.' + urllib.url2pathname(self.path)
-            # print "mypath    #==> : " + mypath
-            # mypath = urlpath_to_localpath(mypath)
-            # print "mypath    #==> : " + mypath
             mypath = mypath.decode("utf8")
             abspath = os.path.abspath( mypath )            
-            print "mypath    #==> : " + mypath
-            print "abspath   #==> : " + abspath
 
             if os.path.isdir(abspath):
                 page = make_index( self.path,mypath )
